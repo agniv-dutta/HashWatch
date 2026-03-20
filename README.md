@@ -245,3 +245,5 @@ Implemented tests cover:
 ## License
 
 MIT
+
+Made by Agniv Dutta- 1601012039, Aditya Choudhuri- 16010123021 and Aaryan Dubey- 16010123011 for NIS IA-2 TY SEM VI
