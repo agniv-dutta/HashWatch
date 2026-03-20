@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler, FileSystemMovedEvent
 from watchdog.observers import Observer
 
 from alerts import alert_added, alert_deleted, alert_modified
+from config import BASELINE_FILE
 from hasher import compute_file_hash, normalize_path
 
 
@@ -27,11 +30,29 @@ class HashWatchHandler(FileSystemEventHandler):
         super().__init__()
         self.logger = logging.getLogger("hashwatch")
         self.watched_paths = [normalize_path(path) for path in watched_paths]
+        self.meta: dict[str, object] = {}
+        if isinstance(baseline.get("_meta"), dict):
+            self.meta = dict(baseline["_meta"])
+        self.baseline_path = Path(BASELINE_FILE)
         self.baseline_hashes: dict[str, str] = {
             path: value
             for path, value in baseline.items()
             if path != "_meta" and isinstance(value, str)
         }
+
+    def _persist_baseline(self) -> None:
+        """Write the latest in-memory baseline state to disk."""
+        self.meta["total_files"] = len(self.baseline_hashes)
+        self.meta["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        payload: dict[str, object] = {"_meta": self.meta}
+        payload.update(self.baseline_hashes)
+
+        try:
+            with self.baseline_path.open("w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2)
+        except OSError as exc:
+            self.logger.error("Failed to persist baseline: %s", exc)
 
     def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file modification events."""
@@ -65,6 +86,7 @@ class HashWatchHandler(FileSystemEventHandler):
 
         alert_added(key, new_hash)
         self.baseline_hashes[key] = new_hash
+        self._persist_baseline()
 
     def on_deleted(self, event: FileSystemEvent) -> None:
         """Handle file deletion events."""
@@ -73,7 +95,8 @@ class HashWatchHandler(FileSystemEventHandler):
 
         key = normalize_path(event.src_path)
         alert_deleted(key)
-        self.baseline_hashes.pop(key, None)
+        if self.baseline_hashes.pop(key, None) is not None:
+            self._persist_baseline()
 
     def on_moved(self, event: FileSystemMovedEvent) -> None:
         """Handle file move/rename events as delete+add."""
@@ -92,6 +115,7 @@ class HashWatchHandler(FileSystemEventHandler):
 
         alert_added(new_key, new_hash)
         self.baseline_hashes[new_key] = new_hash
+        self._persist_baseline()
 
 
 def start_monitoring(paths: list[str], baseline: dict[str, object]) -> None:
