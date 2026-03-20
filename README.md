@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" alt="HashWatch" width="400"/>
+</p>
+
 # HashWatch
 
 HashWatch is a Python File Integrity Monitoring and Malware Detection tool that detects unauthorized file changes using SHA-256 baselines and real-time filesystem monitoring.
