@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.svg" alt="HashWatch" width="400"/>
+  <img src="hashwatch/hashwatch_logo.svg" alt="HashWatch" width="400"/>
 </p>
 
 # HashWatch
