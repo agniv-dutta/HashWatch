@@ -246,6 +246,10 @@ Implemented tests cover:
 - Handles PermissionError and FileNotFoundError during hashing.
 - Handles JSONDecodeError and I/O errors during baseline load/save.
 
+## Demo Video
+
+https://youtu.be/xlxrUyBhE7Q 
+
 ## License
 
 MIT
